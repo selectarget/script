@@ -1,0 +1,8 @@
+#!name=FTzhongwenwang
+#!desc=
+
+[Script]
+FTzhongwenwang = type=http-response,pattern=^https:\/\/d3plbs0ewhofpw\.cloudfront\.net\/index\.php\/jsapi\/paywall,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/selectarget/script/main/FT.js
+
+[MITM]
+hostname= %APPEND% d3plbs0ewhofpw.cloudfront.net
