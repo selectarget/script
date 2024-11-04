@@ -2,7 +2,7 @@
 #!desc=
 
 [Script]
-jinshi = type=http-response,pattern=^https:\/\/uc-api\.jin10\.com\/userinfo\?show=1$,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/selectarget/script/main/FT.js
+jinshi = type=http-response,pattern=^https:\/\/uc-api\.jin10\.com\/userinfo\?show=1$,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/selectarget/script/refs/heads/main/jinshi.js
 
 [MITM]
 hostname= %APPEND% uc-api.jin10.com
