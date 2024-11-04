@@ -24,8 +24,8 @@ baby = {
     "location": "河南",
     "vip_info": {},
     "vip_str": "",
-    "vip_level": 0,
-    "vip_expiration": ""
+    "vip_level": 1,
+    "vip_expiration": "2025-12-31"
   }
 
 };
