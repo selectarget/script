@@ -1,19 +1,24 @@
-#!name=彩云天气SVIP
-#!desc=彩云天气会员解锁（适配 cyapi 新版接口）
-#!homepage=https://yfamilys.com
-#!author=ddgksf2013 / chxm1023
+#!name=彩云天气-去广告
+#!desc=彩云天气 Pro 去广告/去弹窗（7.61.x cyapi，不含会员解锁）
+#!homepage=https://github.com/selectarget/script
+#!author=selectarget
 #!icon=https://raw.githubusercontent.com/deezertidal/private/main/icons/caiyun.png
 
 [MITM]
-hostname = *.cyapi.cn, *.caiyunapp.com, ad.caiyunapp.com
+hostname = wrapper.cyapi.cn, starplucker.cyapi.cn, ad.cyapi.cn, ad.caiyunapp.com, gather.colorfulclouds.net
 
 [Script]
-# 广告/弹窗/净化
-http-response ^https?:\/\/(ad|biz|wrapper|starplucker)\.cyapi\.cn\/.+\/((activity\?app_name|operation|config|req\?app_name=weather)|v\d\/(trial_card\/info|entries|friend_cards|token\/device)) script-path=https://raw.githubusercontent.com/selectarget/script/main/cytq.js, requires-body=true, tag=彩云天气净化
-# VIP信息（旧版 user / 新版 vip_info、user_detail）
-http-response ^https?:\/\/(biz|wrapper|starplucker)\.cyapi\.cn\/(v\d\/user\?app_name|.+\/v\d\/(vip_info|user_detail)) script-path=https://raw.githubusercontent.com/selectarget/script/main/cytq.js, requires-body=true, tag=彩云天气VIP
-# SVIP 地图 / 48小时预报（改请求头 token）
-http-request ^https?:\/\/(api|wrapper)\.cyapi\.cn\/v\d\/(satellite|nafp\/origin_images) script-path=https://raw.githubusercontent.com/selectarget/script/main/cytq.js, tag=彩云天气地图
+# 活动/弹窗/引导
+http-response ^https?:\/\/wrapper\.cyapi\.cn\/v1\/activity script-path=https://raw.githubusercontent.com/selectarget/script/main/cytq.js, requires-body=true, tag=彩云-去弹窗
+# 页面条件弹窗
+http-response ^https?:\/\/starplucker\.cyapi\.cn\/v3\/config\/cypage\/.+\/conditions script-path=https://raw.githubusercontent.com/selectarget/script/main/cytq.js, requires-body=true, tag=彩云-条件弹窗
+# 全局配置去 AD 槽
+http-response ^https?:\/\/starplucker\.cyapi\.cn\/v3\/config(?:\?|$) script-path=https://raw.githubusercontent.com/selectarget/script/main/cytq.js, requires-body=true, tag=彩云-配置去广告
+# 运营入口过滤广告
+http-response ^https?:\/\/starplucker\.cyapi\.cn\/v3\/operation\/(features|entries) script-path=https://raw.githubusercontent.com/selectarget/script/main/cytq.js, requires-body=true, tag=彩云-运营过滤
+# 广告上报（请求直接短路）
+http-request ^https?:\/\/(ad\.cyapi\.cn|ad\.caiyunapp\.com|gather\.colorfulclouds\.net)\/ script-path=https://raw.githubusercontent.com/selectarget/script/main/cytq.js, tag=彩云-广告上报
 
 [URL Rewrite]
-^https:\/\/ad\.caiyunapp\.com\/ reject
+^https?:\/\/ad\.caiyunapp\.com\/ reject
+^https?:\/\/ad\.cyapi\.cn\/ reject

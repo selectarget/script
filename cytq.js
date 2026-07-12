@@ -1,66 +1,88 @@
 /*************************************
+ * 彩云天气 Pro - 去广告 / 去弹窗
+ * 适配：ColorfulCloudsPro 7.61.x（cyapi）
+ * 说明：仅净化广告与运营弹窗，不做会员解锁
+ *************************************/
 
-项目名称：彩云天气-净化/解锁SVIP
-下载地址：https://t.cn/A66d95hV
-更新日期：2024-09-28
-脚本作者：chxm1023
-电报频道：https://t.me/chxm1023
-使用声明：⚠️仅供参考，🈲转载与售卖！
-来源：https://raw.githubusercontent.com/chxm1023/Rewrite/main/caiyuntianqi.js
+const url = $request.url || "";
+const isReq = typeof $response === "undefined";
 
-**************************************
-
-[rewrite_local]
-# 广告净化/弹窗AD/去除亲友卡/去除悬浮模块
-^https?:\/\/(ad|biz|wrapper|starplucker)\.cyapi\.cn\/.+\/((activity\?app_name|operation|config|req\?app_name=weather)|v\d\/(trial_card\/info|entries|friend_cards|token\/device)) url script-response-body cytq.js
-# VIP信息
-^https?:\/\/(biz|wrapper|starplucker)\.cyapi\.cn\/(v\d\/user\?app_name|.+\/v\d\/(vip_info|user_detail)) url script-response-body cytq.js
-# SVIP地图-48小时预报
-^https?:\/\/(api|wrapper)\.cyapi\.cn\/v\d\/(satellite|nafp\/origin_images) url script-request-header cytq.js
-
-[mitm]
-hostname = *.cyapi.cn
-
-*************************************/
-
-let chxm1024 = {}, chxm1023 = JSON.parse(typeof $response != "undefined" && $response.body || null);
-const url = $request.url;
-const headers = Object.fromEntries(Object.entries($request.headers).map(([k, v]) => [k.toLowerCase(), v]));
-
-if (typeof $response == "undefined") {
-  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJ1c2VyX2lkIjoiNWY1YmZjNTdkMmM2ODkwMDE0ZTI2YmI4Iiwic3ZpcF9leHBpcmVkX2F0IjoxNzA1MzMxMTY2LjQxNjc3MSwidmlwX2V4cGlyZWRfYXQiOjB9.h_Cem89QarTXxVX9Z_Wt-Mak6ZHAjAJqgv3hEY6wpps';
-  chxm1024.headers = { ...headers, 'device-token': token };
-  if (headers['app-version'] > '7.19.0') { chxm1024.headers['authorization'] = `Bearer ${token}`; }
-} else {
-  const data = { "is_auto_renewal": true, "expires_time": 4092599349 };
-  //净化广告
-  if (/banners|entries|friend_cards|trial_card\/info|req\?app_name=weather|conditions/.test(url)) {
-    chxm1023 = {};
+// ---------- 请求阶段：拦广告上报 ----------
+if (isReq) {
+  if (/ad\.cyapi\.cn|ad\.caiyunapp\.com|gather\.colorfulclouds\.net/i.test(url)) {
+    $done({ response: { status: 200, headers: { "Content-Type": "application/json" }, body: '{"status":"ok"}' } });
+  } else {
+    $done({});
   }
-  //旧版数据
-  if (/user\?app_name/.test(url)) {
-    chxm1023.result = { ...chxm1023.result, "is_vip": true, "vip_expired_at": 4092599349, "svip_given": 1, "is_xy_vip": true, "xy_svip_expire": 4092599349, "wt": { ...chxm1023.result.wt, "vip": { ...chxm1023.result.wt.vip, "expired_at": 0, "enabled": true, "svip_apple_expired_at": 4092599349, "is_auto_renewal": true, "svip_expired_at": 4092599349 }, "svip_given": 1 }, "vip_take_effect": 1, "xy_vip_expire": 4092599349, "svip_expired_at": 4092599349, "svip_take_effect": 1, "vip_type": "s" };
-  }
-  //新版数据
-  if (/user_detail/.test(url)) {
-    chxm1023.vip_info.show_upcoming_renewal = false;
-    chxm1023.vip_info.svip = data;
-  }
-  //VIP信息
-  if (/vip_info/.test(url)) {
-    chxm1023.show_upcoming_renewal = false;
-    chxm1023.svip = data;
-  }
-  //首页 features
-  if (/features|homefeatures/.test(url)) {
-    chxm1023["data"] = chxm1023.data || [];
-  }
-  chxm1024.body = JSON.stringify(chxm1023);
 }
 
-//去除悬浮模块
-if (/activity\?app_name/.test(url)) {
-  chxm1024.body = headers['app-version'] < '7.20.0'  ? '{"status":"ok","activities":[{"items":[{}]}]}'  : '{"status":"ok","activities":[]}';
+// ---------- 响应阶段 ----------
+let body = $response.body;
+if (!body) $done({});
+
+const headers = Object.fromEntries(
+  Object.entries($request.headers || {}).map(([k, v]) => [k.toLowerCase(), v])
+);
+
+try {
+  // 1) 运营活动 / 弹窗 / 引导卡
+  // 例: https://wrapper.cyapi.cn/v1/activity?app_name=weather&os_type=ios_pro&type_id=...
+  if (/\/v1\/activity\?/i.test(url) || /activity\?app_name=/i.test(url)) {
+    // 新版常见结构
+    body = JSON.stringify({ status: "ok", activities: [], interval: 999999 });
+    $done({ body });
+  }
+
+  // 2) 页面条件弹窗（首页/个人页等）
+  // 例: starplucker.cyapi.cn/v3/config/cypage/.../conditions/local
+  if (/\/config\/cypage\/.+\/conditions/i.test(url)) {
+    body = JSON.stringify({ popups: [], actions: [] });
+    $done({ body });
+  }
+
+  // 3) 旧版广告位 / 试用卡 / 运营入口类
+  if (
+    /banners|friend_cards|trial_card\/info|operation\/banners|operation\/homefeatures|req\?app_name=weather/i.test(
+      url
+    )
+  ) {
+    body = "{}";
+    $done({ body });
+  }
+
+  // 4) entries / features：去掉明显广告位，保留功能入口
+  if (/\/operation\/(entries|features)/i.test(url) || /\/v\d\/entries/i.test(url)) {
+    let obj = JSON.parse(body);
+    const drop = (item) => {
+      const t = JSON.stringify(item || {}).toLowerCase();
+      return /ad|ads|advert|banner|promo|运营|广告|svip|会员|开通|trial|invite/.test(t);
+    };
+    if (Array.isArray(obj.data)) obj.data = obj.data.filter((x) => !drop(x));
+    if (Array.isArray(obj.result)) obj.result = obj.result.filter((x) => !drop(x));
+    if (Array.isArray(obj.entries)) obj.entries = obj.entries.filter((x) => !drop(x));
+    body = JSON.stringify(obj);
+    $done({ body });
+  }
+
+  // 5) 全局 config：去掉 AD* 卡片位（首页/地图广告槽）
+  if (/starplucker\.cyapi\.cn\/v3\/config(?:\?|$)/i.test(url)) {
+    let obj = JSON.parse(body);
+    const stripAd = (arr) =>
+      Array.isArray(arr) ? arr.filter((x) => !/^AD\d+/i.test(String(x && x.name))) : arr;
+    if (obj.pic_page_card_orders) obj.pic_page_card_orders = stripAd(obj.pic_page_card_orders);
+    if (obj.map_page_card_orders) obj.map_page_card_orders = stripAd(obj.map_page_card_orders);
+    if (obj.home_page_card_orders) obj.home_page_card_orders = stripAd(obj.home_page_card_orders);
+    body = JSON.stringify(obj);
+    $done({ body });
+  }
+
+  // 6) 广告日志响应直接 ok
+  if (/ad\.(cyapi|caiyunapp)\./i.test(url)) {
+    body = '{"status":"ok"}';
+    $done({ body });
+  }
+} catch (e) {
+  // 解析失败则原样返回
 }
 
-$done(chxm1024);
+$done({ body });
